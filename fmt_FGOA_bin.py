@@ -2,11 +2,10 @@ from inc_noesis import *
 
 
 def registerNoesisTypes():
-	handle = noesis.register("Fate Grand Order Arcade", "_obj.bin")
-	noesis.setHandlerTypeCheck(handle, noepyCheckType)
-	noesis.setHandlerLoadModel(handle, noepyLoadModel)
-	return 1
-
+    handle = noesis.register("Fate Grand Order Arcade", "_obj.bin")
+    noesis.setHandlerTypeCheck(handle, noepyCheckType)
+    noesis.setHandlerLoadModel(handle, noepyLoadModel)
+    return 1
 
 def noepyCheckType(data):
 	if len(data) < 8:
@@ -152,7 +151,7 @@ def GetUNK4(bs, LOC, Count) -> UNK4Data:
         U.VStride = bs.readInt()
         U.VTest = bs.readUShort()
         U.UTest = bs.readUShort()
-        #print(bs.tell())
+        # print(bs.tell())
         U.US = bs.readFloat()
         U.VS = bs.readFloat()
         U.UNKFloat = bs.readFloat()
@@ -329,8 +328,8 @@ def GetUNK25(bs, LOC, Plus, St):
     bs.seek(POS4+Plus)
     for rm in range(0, Count2):
         Bone25Remap.append(bs.readInt())
-    #print(Bone25Remap)
-    print(Dups)
+    # print(Bone25Remap)
+    # print(Dups)
     return Bone25List, Bone25Remap
 
 def GetUNK29(bs, LOC, Count, St):
@@ -385,7 +384,7 @@ def GetSkel(bs, LOC, St):
     for P in range(0, BoneCount):
         Parent = bs.readInt()
         ParentList.append(Parent)
-        #print(Parent)
+        # print(Parent)
     for PP in range(0, BoneCount):
         ID = bs.readInt()
         Sort.append(ID)
@@ -397,13 +396,13 @@ def GetSkel(bs, LOC, St):
         BoneName = bs.readBytes(BoneC).decode("ASCII").rstrip("\0")
         bs.seek((4 - BoneC % 4) % 4, 1)
         BoneNames.append(BoneName)
-        print(BoneName, BID)
+        # print(BoneName, BID)
         Sort2.append(BID)
     for fuck in range(0, BoneCount):
         Y = Sort2.index(fuck)
-        print(fuck, BoneNames[Y])
+        # print(fuck, BoneNames[Y])
     for K in range(BoneCount):
-        #print(ParentList[K], Sort[K])
+        # print(ParentList[K], Sort[K])
         BT = BoneClass()
         BT.ParentID = ParentList[K]
         #BT.Name = BoneNames[Sort[K]-1]
@@ -419,7 +418,7 @@ def GetSkel(bs, LOC, St):
         # Held = St[Sort[Q]]
         #boneList.append(NoeBone(Q, Held, MatList[Q], None, ParentList[Q]))
         boneList.append(NoeBone(Q, "bone_"+str(Q), MatList[Q], None, ParentList[Q]))
-    #print("BoneEnd", bs.tell())
+    # print("BoneEnd", bs.tell())
     return boneList, Sort
 ####Lifted tex_FGOA_txp by Silvris####
 def getTextureFormat(format):
@@ -523,8 +522,11 @@ def noepyLoadModel(data, mdlList):
     rapi.rpgSetOption(noesis.RPGOPT_MORPH_RELATIVENORMALS, 1)
     CharID = rapi.getLocalFileName(rapi.getInputName()).rsplit("_obj.bin", 1)[0]
     folderName = rapi.getDirForFilePath(rapi.getInputName())
+    is_stage_model = CharID.startswith("stg")
+    texList = []
+    TexNames = []
+
     if rapi.checkFileExists(folderName+CharID+str("_tex.bin")):
-        print("Loading Textures")
         TexFile = rapi.loadIntoByteArray(folderName+CharID+str("_tex.bin"))
         tex = NoeBitStream(TexFile)
         texList, TexNames = LoadTextures(tex, CharID)
@@ -545,7 +547,7 @@ def noepyLoadModel(data, mdlList):
     ObjTables = []
     for Z in range(0, ObjCount):
         ObjTables.append(bs.readInt64())
-    #print(ObjTables, Names)
+    # print(ObjTables, Names)
     ObjList = []
     for MM in range(0, len(ObjTables)):
         ObjListBlock = []
@@ -593,7 +595,7 @@ def noepyLoadModel(data, mdlList):
         O.TexBind = ObjListBlock[18]+BlockLOC
         O.TexBindC = ObjListBlock[17]
         ObjList.append(O)
-        print(O.__dict__)
+        # print(O.__dict__)
     V_COL = 128
     V_UV = 8
     V_UV2 = 16
@@ -604,7 +606,7 @@ def noepyLoadModel(data, mdlList):
         rapi.rpgReset()
         C = ObjList[M]
         Skip = 0
-        print(C.__dict__)
+        # print(C.__dict__)
         S = GetStrings(bs, C.StringLOC, C.StringC)
         T, T2 = GetTextureList(bs, C.TextureList, ObjTables[M], S)
         E = GetUNK18(bs, C.TexBind, C.TexBindC, TexNames)
@@ -617,13 +619,13 @@ def noepyLoadModel(data, mdlList):
             B25L, Sort = GetUNK25(bs, C.Bone25, ObjTables[M], S)
         MD = GetUNK29(bs, C.MorphData, C.MorphDC, S)
         MN = GetUNK31(bs, C.MorphNames, C.MorphC, S)
-        print("Attrib", len(A), "UNK4", len(U))
-        #print(A, U)
+        # print("Attrib", len(A), "UNK4", len(U))
+        # print(A, U)
         Add = 0
         MorphTotal = 0
         for X in range(0, len(U)):
             UC = U[X]
-            print(UC.__dict__)
+            # print(UC.__dict__)
             BoneMapL = []
             if UC.MorphCount:
                 CMD = MD[MorphTotal]
@@ -631,22 +633,22 @@ def noepyLoadModel(data, mdlList):
             for SC in range(0, UC.UseCount):
                 BoneMapL = []
                 CA = A[SC+Add]
-                print(CA.__dict__)
+                # print(CA.__dict__)
                 bs.seek(C.BoneMap+(CA.BoneMapPush*2))
-                print("BoneMapLOC", (CA.BoneMapPush*2), bs.tell(), CA.BoneMapCount)
+                # print("BoneMapLOC", (CA.BoneMapPush*2), bs.tell(), CA.BoneMapCount)
                 if CA.BoneMapCount:
                     for BML in range(0,CA.BoneMapCount):
                         BoneMapL.append(Sort[bs.readUShort()])
                     rapi.rpgSetBoneMap(BoneMapL)
-                    print("Read BoneMap", BoneMapL)
+                    # print("Read BoneMap", BoneMapL)
                 bs.seek(C.VLOC+CA.VertexPush)
                 VertBlock = bs.readBytes(CA.VertexCount*UC.VStride)
                 bs.seek(C.FLOC+CA.FacePush)
                 FaceBlock = bs.readBytes(CA.FaceCount*2)
                 if UC.MorphCount:
-                    print(X, len(MN), MorphTotal)
+                    # print(X, len(MN), MorphTotal)
                     MorphStuff(bs, S, UC, SC, CA, FaceBlock, C, MN, CMD, MM[CA.UNKInt[0]].Name)
-                print(M, SC, S[UC.UNKID]+"_"+str(SC))
+                # print(M, SC, S[UC.UNKID]+"_"+str(SC))
                 rapi.rpgSetName(S[UC.UNKID]+"_"+str(SC))
                 rapi.rpgSetMaterial(MM[CA.UNKInt[0]].Name)
                 normals = bytearray()
@@ -664,7 +666,7 @@ def noepyLoadModel(data, mdlList):
                 if UC.DataType & V_UV == V_UV:
                     Push += 4
                     Push2 = Push+2
-                    print("UV", Push, Push2)
+                    # print("UV", Push, Push2)
                     UV = []
                     for n in range(0, CA.VertexCount):
                         UVU = int.from_bytes(VertBlock[n*UC.VStride+Push:n*UC.VStride+Push+2], 'little') * CA.UNKF[0]
@@ -679,7 +681,7 @@ def noepyLoadModel(data, mdlList):
                     Push += 4
                     Push2 = Push+2
                     UV = []
-                    print("UV2", Push, Push2)
+                    # print("UV2", Push, Push2)
                     for n in range(0, CA.VertexCount):
                         UVU = int.from_bytes(VertBlock[n*UC.VStride+Push:n*UC.VStride+Push+2], 'little') * CA.UNKF[0]
                         UVV = int.from_bytes(VertBlock[n*UC.VStride+Push2:n*UC.VStride+Push2+2], 'little') * CA.UNKF[1]
@@ -691,7 +693,7 @@ def noepyLoadModel(data, mdlList):
                     rapi.rpgSetUVScaleBias(None, O)
                 if UC.DataType & V_COL == V_COL:
                     Push += 4
-                    print("Color", Push)
+                    # print("Color", Push)
                     rapi.rpgBindColorBufferOfs(VertBlock, noesis.RPGEODATA_UBYTE, UC.VStride, Push, 4)
                 else:
                     VCOL = []
@@ -709,19 +711,19 @@ def noepyLoadModel(data, mdlList):
                 if Skin and UC.DataType & V_ID == V_ID:
                     Push += 4
                     Push2 = Push+4
-                    print("Skin", Push, Push2)
+                    # print("Skin", Push, Push2)
                     rapi.rpgBindBoneWeightBufferOfs(VertBlock, noesis.RPGEODATA_UBYTE, UC.VStride, Push, 4)
                     rapi.rpgBindBoneIndexBufferOfs(VertBlock, noesis.RPGEODATA_UBYTE, UC.VStride, Push2, 4)
                 if Skin:
                     if CA.BoneMapCount == 1:
-                        print("AutoMapWeights")
+                        # print("AutoMapWeights")
                         WBlock = []
                         IBlock = []
                         for VV in range(0, CA.VertexCount):
                             IBlock.append(0)
                             IBlock.append(65535)
                         AutoIBlock = struct.pack('H'*len(IBlock), *IBlock)
-                        #print(AutoIBlock)
+                        # print(AutoIBlock)
                         rapi.rpgBindBoneWeightBufferOfs(AutoIBlock, noesis.RPGEODATA_USHORT, 4, 2, 1)
                         rapi.rpgBindBoneIndexBufferOfs(AutoIBlock, noesis.RPGEODATA_USHORT, 4, 0, 1)
                 rapi.rpgCommitTriangles(FaceBlock, noesis.RPGEODATA_USHORT, CA.FaceCount, noesis.RPGEO_TRIANGLE_STRIP, 1)
@@ -729,7 +731,10 @@ def noepyLoadModel(data, mdlList):
             Add += UC.UseCount
             rapi.rpgClearBufferBinds()
         mdl = rapi.rpgConstructModel()
-        mdl.setModelMaterials(NoeModelMaterials(texList, MatList))
+        if not is_stage_model:
+            mdl.setModelMaterials(NoeModelMaterials(texList, MatList))
+        else:
+            print("Stage model detected, skipping texture loading to prevent crashing! (Materials will still be attached)")
         if B25L:
             B25L = rapi.multiplyBones(B25L)
             mdl.setBones(B25L)
@@ -743,7 +748,7 @@ def MorphStuff(bs, S, UC, SC, CA, FaceBlock, C, MN, MT, Name):
     for Mor in range(0, UC.MorphCount):
         rapi.rpgClearBufferBinds()
         morph_name = MN[Mor + MT.Pad]
-        print("Assigning morph name: {}".format(morph_name))
+        # print("Assigning morph name: {}".format(morph_name))
         rapi.rpgSetName(morph_name)
         MorphNormals = bytearray()
         Morphs = bs.readBytes(CA.VertexCount*UC.VStride)
