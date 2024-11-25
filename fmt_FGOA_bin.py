@@ -231,9 +231,20 @@ def GetMaterials(bs, LOC, Count, St, E) -> Material():
     for MT in range(0, len(Materials)):
         CM = Materials[MT]
         material = NoeMaterial(CM.Name, "")
+        material.setDefaultBlend(0)
         for Z in range(0, len(CM.TextureList)):
             CTL = CM.TextureList[Z]
+            texture_name = CTL.rsplit(',')[0]
+            print(texture_name)
+
+            if "cheek" in texture_name.lower(): # The blush texture doesn't need drawn imo
+                material.setOpacityTexture(None)
+                material.setDiffuseColor(NoeVec4([0.0, 0.0, 0.0, 0.0]))
+                material.setBlendMode("GL_ONE", "GL_ONE_MINUS_SRC_ALPHA")
+                material.setAlphaTest(0.0)
+                continue
             if CTL.rsplit(',')[1] == str(0):
+                material.setDiffuseColor(NoeVec4([1.0, 1.0, 1.0, 1.0]))
                 material.setTexture(CTL.rsplit(',')[0])
             elif CTL.rsplit(',')[1] == str(4):
                 material.setSpecularTexture(CTL.rsplit(',')[0])
@@ -242,7 +253,6 @@ def GetMaterials(bs, LOC, Count, St, E) -> Material():
             elif CTL.rsplit(',')[1] == str(16):
                 material.setOpacityTexture(CTL.rsplit(',')[0])
                 material.setDefaultBlend(0)
-                # material.setBlendMode("GL_ONE", "GL_ONE_MINUS_SRC_ALPHA")
                 material.setAlphaTest(0.333)
             elif CTL.rsplit(',')[1] == str(18):
                 material.setEnvTexture(CTL.rsplit(',')[0])
@@ -704,13 +714,13 @@ def noepyLoadModel(data, mdlList):
                 if UC.DataType & V_COL == V_COL:
                     Push += 4
                     # print("Color", Push)
-                    rapi.rpgBindColorBufferOfs(VertBlock, noesis.RPGEODATA_UBYTE, UC.VStride, Push, 4)
+                    # rapi.rpgBindColorBufferOfs(VertBlock, noesis.RPGEODATA_UBYTE, UC.VStride, Push, 4)
                 else:
                     VCOL = []
                     for v in range(0, CA.VertexCount):
-                        VCOL.append(float(0.0))
-                        VCOL.append(float(0.0))
-                        VCOL.append(float(0.0))
+                        VCOL.append(float(1.0))
+                        VCOL.append(float(1.0))
+                        VCOL.append(float(1.0))
                         VCOL.append(float(1.0))
                     VCB = struct.pack('f'*len(VCOL), *VCOL)
                     rapi.rpgBindColorBuffer(VCB, noesis.RPGEODATA_FLOAT, 16, 4)
