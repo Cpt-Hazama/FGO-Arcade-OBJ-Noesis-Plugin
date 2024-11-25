@@ -1,5 +1,6 @@
 from inc_noesis import *
 
+SCALE_FACTOR = 37.6 # Scaled for Source engine, change to 1 for original scaling
 
 def registerNoesisTypes():
     handle = noesis.register("Fate Grand Order Arcade", "_obj.bin")
@@ -241,7 +242,7 @@ def GetMaterials(bs, LOC, Count, St, E) -> Material():
             elif CTL.rsplit(',')[1] == str(16):
                 material.setOpacityTexture(CTL.rsplit(',')[0])
                 material.setDefaultBlend(0)
-                #material.setBlendMode("GL_ONE", "GL_ONE_MINUS_SRC_ALPHA")
+                # material.setBlendMode("GL_ONE", "GL_ONE_MINUS_SRC_ALPHA")
                 material.setAlphaTest(0.333)
             elif CTL.rsplit(',')[1] == str(18):
                 material.setEnvTexture(CTL.rsplit(',')[0])
@@ -300,12 +301,14 @@ def GetUNK25(bs, LOC, Plus, St):
     bs.seek(POS0+Plus)
     BoneNames = []
     Dups = []
-    #Mostly lifted from fmt_SEGA_bin by Minmode
+    # Mostly lifted from fmt_SEGA_bin by Minmode
     for u in range(0, Count0):
         m01, m02, m03, m04 = bs.read("4f")
         m11, m12, m13, m14 = bs.read("4f")
         m21, m22, m23, m24 = bs.read("4f")
-        boneMtx = NoeMat43([NoeVec3((m01, m02, m03)), NoeVec3((m11, m12, m13)), NoeVec3((m21, m22, m23)), NoeVec3((m04, m14, m24))])
+        # Apply scaling to the translation vector
+        boneScaleTranslation = NoeVec3((m04 * SCALE_FACTOR, m14 * SCALE_FACTOR, m24 * SCALE_FACTOR))
+        boneMtx = NoeMat43([NoeVec3((m01, m02, m03)), NoeVec3((m11, m12, m13)), NoeVec3((m21, m22, m23)), boneScaleTranslation])
         boneMatrixList.append(boneMtx)
         boneMtx2 = NoeMat43()
         br = boneMtx
@@ -376,8 +379,10 @@ def GetSkel(bs, LOC, St):
         pos[0] = pos[0]
         pos[1] = pos[1]
         pos[2] = pos[2]
+        boneScalePos = NoeVec3((pos[0] * SCALE_FACTOR, pos[1] * SCALE_FACTOR, pos[2] * SCALE_FACTOR))
         mat = rot.toMat43()
-        mat.__setitem__(3,(pos[0],pos[1],pos[2]))
+        # mat.__setitem__(3,(pos[0],pos[1],pos[2]))
+        mat.__setitem__(3, (boneScalePos[0], boneScalePos[1], boneScalePos[2]))
         MatList.append(mat)
         bs.seek(76, 1)
         #MatList.append(bs.readBytes(104))
@@ -522,7 +527,6 @@ def noepyLoadModel(data, mdlList):
     rapi.rpgSetOption(noesis.RPGOPT_MORPH_RELATIVENORMALS, 1)
     CharID = rapi.getLocalFileName(rapi.getInputName()).rsplit("_obj.bin", 1)[0]
     folderName = rapi.getDirForFilePath(rapi.getInputName())
-    is_stage_model = CharID.startswith("stg")
     texList = []
     TexNames = []
 
@@ -659,7 +663,13 @@ def noepyLoadModel(data, mdlList):
                 for T in range(0, CA.VertexCount):
                     tang+= VertBlock[T*UC.VStride+16:T*UC.VStride+16+4]
                 tangent = rapi.decodeTangents32(tang, 4, -7, -7, -7, -7, NOE_LITTLEENDIAN)
-                rapi.rpgBindPositionBufferOfs(VertBlock, noesis.RPGEODATA_FLOAT, UC.VStride, 0)
+                positions = bytearray()
+                for v in range(CA.VertexCount):
+                    x, y, z = struct.unpack_from("fff", VertBlock, v * UC.VStride)
+                    boneScalePos = struct.pack("fff", x * SCALE_FACTOR, y * SCALE_FACTOR, z * SCALE_FACTOR)
+                    positions.extend(boneScalePos)
+                rapi.rpgBindPositionBuffer(positions, noesis.RPGEODATA_FLOAT, 12)
+                # rapi.rpgBindPositionBufferOfs(VertBlock, noesis.RPGEODATA_FLOAT, UC.VStride, 0)
                 rapi.rpgBindNormalBuffer(norm, noesis.RPGEODATA_FLOAT, 12)
                 #rapi.rpgBindTangentBuffer(tangent, noesis.RPGEODATA_FLOAT, 12)
                 Push = 16
@@ -731,7 +741,7 @@ def noepyLoadModel(data, mdlList):
             Add += UC.UseCount
             rapi.rpgClearBufferBinds()
         mdl = rapi.rpgConstructModel()
-        if not is_stage_model:
+        if not CharID.startswith("stg"):
             mdl.setModelMaterials(NoeModelMaterials(texList, MatList))
         else:
             print("Stage model detected, skipping texture loading to prevent crashing! (Materials will still be attached)")
@@ -755,7 +765,13 @@ def MorphStuff(bs, S, UC, SC, CA, FaceBlock, C, MN, MT, Name):
         for Mo in range(0, CA.VertexCount):
             MorphNormals += Morphs[Mo*UC.VStride+12:Mo*UC.VStride+12+4]
         norm = rapi.decodeNormals32(MorphNormals, 4, -10, -10, -10, NOE_LITTLEENDIAN)
-        rapi.rpgFeedMorphTargetPositionsOfs(Morphs, noesis.RPGEODATA_FLOAT, UC.VStride, 0)
+        morphScale = bytearray()
+        for v in range(CA.VertexCount):
+            x, y, z = struct.unpack_from("fff", Morphs, v * UC.VStride)
+            boneScalePos = struct.pack("fff", x * SCALE_FACTOR, y * SCALE_FACTOR, z * SCALE_FACTOR)
+            morphScale.extend(boneScalePos)
+        rapi.rpgFeedMorphTargetPositions(morphScale, noesis.RPGEODATA_FLOAT, 12)
+        # rapi.rpgFeedMorphTargetPositionsOfs(Morphs, noesis.RPGEODATA_FLOAT, UC.VStride, 0)
         rapi.rpgFeedMorphTargetNormals(norm, noesis.RPGEODATA_FLOAT, 12)
         rapi.rpgCommitMorphFrame(CA.VertexCount)
     rapi.rpgCommitMorphFrameSet()
