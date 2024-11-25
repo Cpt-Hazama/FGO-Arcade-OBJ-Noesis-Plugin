@@ -4,9 +4,11 @@ All credits go to him and any contributors who created the script, this is merel
 
 # To Do
 - Change bone orientation for proper Source support
-- Better texture preview loading in Noesis
 - Character/Stage name printing in console(?)
 - Automatically fix bone hierarchy for unparented bones
+
+# Fixed Texture Previews
+![image](https://github.com/user-attachments/assets/0419442a-a9ef-430d-9122-d1872d3b5519)
 
 # Morph Loading
 ![image](https://github.com/user-attachments/assets/32c017c1-2c22-4cfd-aaa3-374f459501b5)
