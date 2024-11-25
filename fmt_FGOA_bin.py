@@ -235,7 +235,6 @@ def GetMaterials(bs, LOC, Count, St, E) -> Material():
         for Z in range(0, len(CM.TextureList)):
             CTL = CM.TextureList[Z]
             texture_name = CTL.rsplit(',')[0]
-            print(texture_name)
 
             if "cheek" in texture_name.lower(): # The blush texture doesn't need drawn imo
                 material.setOpacityTexture(None)
@@ -253,7 +252,9 @@ def GetMaterials(bs, LOC, Count, St, E) -> Material():
             elif CTL.rsplit(',')[1] == str(16):
                 material.setOpacityTexture(CTL.rsplit(',')[0])
                 material.setDefaultBlend(0)
-                material.setAlphaTest(0.333)
+                material.setBlendMode("GL_SRC_ALPHA", "GL_ONE_MINUS_SRC_ALPHA")
+                material.flags |= noesis.NMATFLAG_SORT01
+                # material.setAlphaTest(0.333)
             elif CTL.rsplit(',')[1] == str(18):
                 material.setEnvTexture(CTL.rsplit(',')[0])
         MatList.append(material)
